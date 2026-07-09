@@ -3,38 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>今天吃什麼？附近小吃隨機抽</title>
+    <title>今天吃什麼？(功能升級版)</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; text-align: center; background-color: #f9f9f9; color: #333; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; text-align: center; background-color: #f9f9f9; color: #333; }
         h1 { color: #2c3e50; margin-top: 30px; font-size: 24px; }
-        .control-panel { margin: 20px 0; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .input-group { margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        input[type="number"] { width: 80px; padding: 8px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; text-align: center; }
-        button { width: 100%; padding: 12px; font-size: 18px; font-weight: bold; cursor: pointer; color: white; border: none; border-radius: 8px; transition: background 0.2s; }
+        .control-panel { margin: 20px 0; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: left; }
+        .input-group { margin-bottom: 12px; display: flex; flex-direction: column; gap: 5px; }
+        label { font-weight: bold; font-size: 14px; color: #34495e; }
+        input[type="text"], input[type="number"] { padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        input[type="text"] { width: 100%; }
+        input[type="number"] { width: 100px; }
+        button { width: 100%; padding: 12px; font-size: 18px; font-weight: bold; cursor: pointer; color: white; border: none; border-radius: 8px; transition: background 0.2s; margin-top: 10px; }
         #fetchBtn { background-color: #3498db; }
         #fetchBtn:hover { background-color: #2980b9; }
-        #rollBtn { background-color: #2ecc71; margin-top: 10px; }
+        #rollBtn { background-color: #2ecc71; }
         #rollBtn:hover { background-color: #27ae60; }
         button:disabled { background-color: #bdc3c7 !important; cursor: not-allowed; }
+        
+        /* 結果卡片樣式優化 */
         #result { margin-top: 25px; padding: 20px; border: 2px dashed #2ecc71; border-radius: 12px; background-color: #f2f9f5; display: none; text-align: left; }
-        #result h2 { margin-top: 0; color: #27ae60; font-size: 20px; }
+        #result h2 { margin-top: 0; color: #27ae60; font-size: 22px; }
+        .menu-link { display: inline-block; margin: 10px 0; padding: 8px 15px; background-color: #e67e22; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; }
+        .menu-link:hover { background-color: #d35400; }
+        
+        /* 評論區塊樣式 */
+        .reviews-section { margin-top: 15px; border-top: 1px solid #ddd; padding-top: 15px; }
+        .reviews-title { font-weight: bold; color: #2c3e50; margin-bottom: 8px; font-size: 15px; }
+        .review-box { background: white; padding: 10px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #eee; font-size: 13px; color: #555; line-height: 1.4; }
+        .review-stars { color: #f1c40f; font-weight: bold; }
+        
         .blacklist-btn { background-color: #e74c3c; font-size: 14px; padding: 8px; margin-top: 15px; }
-        .blacklist-btn:hover { background-color: #c0392b; }
-        #statusMsg { font-size: 14px; color: #7f8c8d; margin-top: 5px; }
+        #statusMsg { font-size: 14px; color: #7f8c8d; margin-top: 8px; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>🍔 今天吃什麼？附近小吃隨機抽</h1>
+    <h1>🍔 今天吃什麼？(功能升級版)</h1>
 
     <div class="control-panel">
         <div class="input-group">
+            <label for="locationInput">中心位置 (輸入地址、路段或地標)：</label>
+            <input type="text" id="locationInput" value="新北市板橋區府中路" placeholder="例如：台北火車站、信義區松智路...">
+        </div>
+        
+        <div class="input-group" style="flex-direction: row; align-items: center; gap: 10px;">
             <label for="radius">搜尋範圍：</label>
             <input type="number" id="radius" value="1000" min="100" max="5000" step="100">
             <span>公尺</span>
         </div>
-        <button id="fetchBtn" onclick="getNearbyStores()">1. 讀取附近店家</button>
-        <p id="statusMsg">尚未讀取資料</p>
+        
+        <button id="fetchBtn" onclick="searchStores()">1. 搜尋附近小吃</button>
+        <p id="statusMsg">請輸入地點並點擊搜尋</p>
     </div>
 
     <div>
@@ -45,84 +64,75 @@
         <h2 id="storeName">店家名稱</h2>
         <p id="storeRating">評價：--</p>
         <p id="storeAddress">地址：--</p>
+        
+        <a id="storeMapUri" class="menu-link" target="_blank" href="#">📍 開啟地圖/查看菜單</a>
+
+        <div class="reviews-section">
+            <div class="reviews-title">💬 精選熱門評價：</div>
+            <div id="reviewsContainer">
+                </div>
+        </div>
+
         <button class="blacklist-btn" onclick="addToBlacklist()">❌ 難吃！永久加入黑名單</button>
     </div>
 
     <script>
         // ================= [請在下方輸入您的 API KEY] =================
-        const API_KEY = 'AIzaSyByJXbYcOjCbcD1yTkvkuE2wVydq7C27Dg'; 
+        const API_KEY = '把你的_API_KEY_貼在這邊'; 
         // =============================================================
         
         let allStores = [];        
         let currentStore = null;   
 
-        function getNearbyStores() {
-            const radius = document.getElementById('radius').value;
+        async function searchStores() {
+            const locationText = document.getElementById('locationInput').value.trim();
             const fetchBtn = document.getElementById('fetchBtn');
             const statusMsg = document.getElementById('statusMsg');
-            
-            if (!navigator.geolocation) {
-                alert("瀏覽器不支援取得位置。");
+
+            if (!locationText) {
+                alert("請先輸入地點！");
                 return;
             }
 
-            fetchBtn.innerText = "正在取得定位...";
+            fetchBtn.innerText = "正在搜尋 Google Map...";
             fetchBtn.disabled = true;
+            statusMsg.innerText = "正在撈取資料中...";
 
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    
-                    fetchBtn.innerText = "正在搜尋 Google Map...";
-                    
-                    try {
-                        const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-Goog-Api-Key': API_KEY,
-                                'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating'
-                            },
-                            body: JSON.stringify({
-                                maxResultCount: 20, 
-                                includedTypes: ["restaurant", "meal_takeaway"], 
-                                locationRestriction: {
-                                    circle: {
-                                        center: { latitude: lat, longitude: lng },
-                                        radius: parseFloat(radius)
-                                    }
-                                }
-                            })
-                        });
+            try {
+                const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Goog-Api-Key': API_KEY,
+                        // 關鍵調整：加入了 places.googleMapsUri 以及 places.reviews 欄位
+                        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.googleMapsUri,places.reviews'
+                    },
+                    body: JSON.stringify({
+                        textQuery: `${locationText} 餐廳`, 
+                        maxResultCount: 20,
+                        languageCode: "zh-TW"
+                    })
+                });
 
-                        const data = await response.json();
-                        
-                        if (data.places && data.places.length > 0) {
-                            allStores = data.places;
-                            document.getElementById('rollBtn').disabled = false;
-                            statusMsg.innerText = `成功載入 ${allStores.length} 間鄰近餐廳！`;
-                            statusMsg.style.color = '#27ae60';
-                        } else {
-                            statusMsg.innerText = "範圍內找不到餐廳，請加大搜尋範圍。";
-                            statusMsg.style.color = '#e74c3c';
-                        }
-                    } catch (error) {
-                        console.error("API 錯誤:", error);
-                        statusMsg.innerText = "讀取失敗，請檢查 API 限制或金鑰設定。";
-                        statusMsg.style.color = '#e74c3c';
-                    } finally {
-                        fetchBtn.innerText = "1. 讀取附近店家";
-                        fetchBtn.disabled = false;
-                    }
-                },
-                (error) => {
-                    alert("無法取得您的位置，請確認網頁是否有定位權限（必須使用 https 網址或 localhost）。");
-                    fetchBtn.innerText = "1. 讀取附近店家";
-                    fetchBtn.disabled = false;
-                    statusMsg.innerText = "定位授權失敗";
+                const data = await response.json();
+                
+                if (data.places && data.places.length > 0) {
+                    allStores = data.places;
+                    document.getElementById('rollBtn').disabled = false;
+                    statusMsg.innerText = `成功找到 ${allStores.length} 間鄰近餐廳！`;
+                    statusMsg.style.color = '#27ae60';
+                } else {
+                    statusMsg.innerText = "找不到任何餐廳，請嘗試更換地點關鍵字。";
+                    statusMsg.style.color = '#e74c3c';
                 }
-            );
+            } catch (error) {
+                console.error("API 錯誤:", error);
+                statusMsg.innerText = "搜尋失敗，請檢查 API 金鑰。";
+                statusMsg.style.color = '#e74c3c';
+            } finally {
+                fetchBtn.innerText = "1. 搜尋附近小吃";
+                fetchBtn.disabled = false;
+            }
         }
 
         function pickRandomStore() {
@@ -130,16 +140,58 @@
             const availableStores = allStores.filter(store => !blacklist.includes(store.id));
 
             if (availableStores.length === 0) {
-                alert("這附近所有店家都被你加進黑名單了啦！😅");
+                alert("這個範圍的店都被你加進黑名單了啦！😅");
                 return;
             }
 
             const randomIndex = Math.floor(Math.random() * availableStores.length);
             currentStore = availableStores[randomIndex];
 
+            // 渲染基本資料
             document.getElementById('storeName').innerText = currentStore.displayName.text;
             document.getElementById('storeRating').innerText = `評價：${currentStore.rating ? currentStore.rating + ' ⭐' : '暫無評價'}`;
             document.getElementById('storeAddress').innerText = `地址：${currentStore.formattedAddress}`;
+            
+            // 填入 Google 地圖連結
+            const mapLink = document.getElementById('storeMapUri');
+            if (currentStore.googleMapsUri) {
+                mapLink.href = currentStore.googleMapsUri;
+                mapLink.style.display = 'inline-block';
+            } else {
+                mapLink.style.display = 'none';
+            }
+
+            // 處理並渲染前兩則評價
+            const reviewsContainer = document.getElementById('reviewsContainer');
+            reviewsContainer.innerHTML = ''; // 先清空舊評論
+
+            if (currentStore.reviews && currentStore.reviews.length > 0) {
+                // 只取前兩則
+                const topReviews = currentStore.reviews.slice(0, 2);
+                
+                topReviews.forEach(review => {
+                    const reviewBox = document.createElement('div');
+                    reviewBox.className = 'review-box';
+                    
+                    // 建立星等顯示
+                    const stars = '⭐'.repeat(review.rating || 0);
+                    
+                    // 擷取部分文字防止太長，如果評論太長就切斷
+                    let reviewText = review.text?.text || '（僅評分，無文字評論）';
+                    if (reviewText.length > 80) {
+                        reviewText = reviewText.substring(0, 80) + '...';
+                    }
+
+                    reviewBox.innerHTML = `
+                        <div><span class="review-stars">${stars}</span> <strong>${review.authorAttribution?.displayName || '匿名用戶'}</strong></div>
+                        <div style="margin-top:5px; color:#666;">"${reviewText}"</div>
+                    `;
+                    reviewsContainer.appendChild(reviewBox);
+                });
+            } else {
+                reviewsContainer.innerHTML = '<div style="color:#999; font-size:13px;">暫無詳細評論資料。</div>';
+            }
+
             document.getElementById('result').style.display = 'block';
         }
 
@@ -152,7 +204,6 @@
                 localStorage.setItem('food_blacklist', JSON.stringify(blacklist));
                 alert(`已將「${currentStore.displayName.text}」加入黑名單！`);
                 
-                // 自動重抽一間
                 pickRandomStore();
             }
         }
